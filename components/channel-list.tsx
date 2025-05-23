@@ -4,6 +4,10 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import type { Channel } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import { useFavorites } from "@/contexts/favorites-context"
+import { VideoPlayerModal } from "@/components/ui/VideoPlayerModal"
+
+// @ts-ignore: No types for clusterize.js
+import("clusterize.js")
 
 interface ChannelListProps {
   channels: Channel[]
@@ -21,6 +25,8 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
   const [isClusterizeLoaded, setIsClusterizeLoaded] = useState(false)
   const [Clusterize, setClusterize] = useState<any>(null)
   const [forceUpdate, setForceUpdate] = useState(0)
+  const [videoModalOpen, setVideoModalOpen] = useState(false)
+  const [videoSrc, setVideoSrc] = useState<string | null>(null)
 
   // Set mounted state after component mounts and load Clusterize
   useEffect(() => {
@@ -131,6 +137,9 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
           <div class="bg-gray-50 p-2 rounded-lg text-xs text-gray-600 break-all">${safeUrl}</div>
           <button class="copy-btn mt-3 bg-gradient-to-r from-cyan-600 to-cyan-800 text-white px-3 py-1 rounded-md text-xs cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md" data-url="${safeChannel.url}" type="button">
             📋 Copy URL
+          </button>
+          <button class="play-btn mt-3 ml-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-3 py-1 rounded-md text-xs cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md" data-url="${safeChannel.url}" type="button">
+            ▶️ Play
           </button>
         </div>
       </div>
@@ -295,6 +304,17 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
             }
           }
         }
+
+        // Handle play button clicks
+        if (target.classList.contains("play-btn") || target.closest(".play-btn")) {
+          const playBtn = target.classList.contains("play-btn") ? target : target.closest(".play-btn")
+          const url = playBtn?.getAttribute("data-url")
+          if (url && typeof url === "string") {
+            setVideoSrc(url)
+            setVideoModalOpen(true)
+          }
+          return
+        }
       } catch (error) {
         console.error("Error in click handler:", error)
       }
@@ -350,6 +370,7 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
 
   return (
     <div>
+      <VideoPlayerModal open={videoModalOpen} onClose={() => { setVideoModalOpen(false); setVideoSrc(null) }} src={videoSrc} />
       <div id="scrollArea" ref={scrollAreaRef} className="h-[600px] overflow-auto">
         <div
           id="contentArea"
