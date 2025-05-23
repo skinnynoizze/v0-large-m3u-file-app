@@ -16,16 +16,18 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
   const clusterizeRef = useRef<any>(null)
   const { toast } = useToast()
   const [isMounted, setIsMounted] = useState(false)
-  const [ClusterizeClass, setClusterizeClass] = useState<any>(null)
+  const [isClusterizeLoaded, setIsClusterizeLoaded] = useState(false)
+  const [Clusterize, setClusterize] = useState<any>(null)
 
-  // Set mounted state and load Clusterize after component mounts
+  // Set mounted state after component mounts and load Clusterize
   useEffect(() => {
     setIsMounted(true)
 
     // Dynamically import Clusterize.js
     import("clusterize.js")
       .then((module) => {
-        setClusterizeClass(module.default)
+        setClusterize(() => module.default)
+        setIsClusterizeLoaded(true)
       })
       .catch((error) => {
         console.error("Failed to load Clusterize.js:", error)
@@ -33,19 +35,27 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
 
     return () => {
       if (clusterizeRef.current) {
-        clusterizeRef.current.destroy(true)
+        try {
+          clusterizeRef.current.destroy(true)
+        } catch (e) {
+          console.error("Error destroying Clusterize instance:", e)
+        }
       }
     }
   }, [])
 
   useEffect(() => {
     // Only run this effect on the client side after mounting and Clusterize is loaded
-    if (!isMounted || !ClusterizeClass) return
+    if (!isMounted || !isClusterizeLoaded || !Clusterize) return
 
     // Clean up previous Clusterize instance
     if (clusterizeRef.current) {
-      clusterizeRef.current.destroy(true)
-      clusterizeRef.current = null
+      try {
+        clusterizeRef.current.destroy(true)
+        clusterizeRef.current = null
+      } catch (e) {
+        console.error("Error destroying Clusterize instance:", e)
+      }
     }
 
     if (channels.length === 0 || !scrollAreaRef.current || !contentAreaRef.current) {
@@ -59,13 +69,21 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
       </div>`
     })
 
-    // Initialize Clusterize
+    // Initialize Clusterize with explicit configuration
     try {
-      clusterizeRef.current = new ClusterizeClass({
+      // Make sure the DOM elements have IDs
+      if (!scrollAreaRef.current.id) scrollAreaRef.current.id = "scrollArea"
+      if (!contentAreaRef.current.id) contentAreaRef.current.id = "contentArea"
+
+      // Initialize with all required options
+      clusterizeRef.current = new Clusterize({
         rows: rows,
         scrollId: scrollAreaRef.current.id,
         contentId: contentAreaRef.current.id,
         no_data_text: "No channels found matching your filters",
+        rows_in_block: 50,
+        blocks_in_cluster: 4,
+        show_no_data_row: true,
       })
     } catch (error) {
       console.error("Failed to initialize Clusterize:", error)
@@ -101,10 +119,14 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
     return () => {
       document.removeEventListener("click", handleClick)
       if (clusterizeRef.current) {
-        clusterizeRef.current.destroy(true)
+        try {
+          clusterizeRef.current.destroy(true)
+        } catch (e) {
+          console.error("Error destroying Clusterize instance:", e)
+        }
       }
     }
-  }, [channels, toast, isMounted, ClusterizeClass])
+  }, [channels, toast, isMounted, isClusterizeLoaded, Clusterize])
 
   const generateChannelHTML = (channel: Channel, index: number) => {
     const imageElement = channel.tvgLogo
@@ -126,6 +148,7 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
     `
   }
 
+  // Show a message when no filters are applied
   if (!searchTerm && !selectedGroup) {
     return (
       <div className="bg-gray-50 p-4 rounded-lg text-center text-gray-600">
@@ -134,7 +157,8 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
     )
   }
 
-  if (!isMounted || !ClusterizeClass) {
+  // Show loading state while Clusterize is loading
+  if (!isMounted || !isClusterizeLoaded) {
     return (
       <div className="bg-gray-50 p-4 rounded-lg text-center text-gray-600">
         <div className="animate-pulse">
@@ -142,6 +166,13 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
           <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
         </div>
       </div>
+    )
+  }
+
+  // Show a message when no channels match the filters
+  if (channels.length === 0) {
+    return (
+      <div className="bg-gray-50 p-4 rounded-lg text-center text-gray-600">No channels found matching your filters</div>
     )
   }
 
