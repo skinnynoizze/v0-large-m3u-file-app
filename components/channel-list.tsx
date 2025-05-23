@@ -121,6 +121,14 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
       // Ensure index is a valid number
       const safeIndex = typeof index === "number" && !isNaN(index) ? index : 0
 
+      // Helper to get the play URL (always .m3u)
+      const getPlayUrl = (url: string) => {
+        if (url.endsWith('.ts')) {
+          return url.replace(/\.ts$/, '.m3u');
+        }
+        return url;
+      };
+
       return `
       <div class="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200 transition-all hover:-translate-y-1 hover:shadow-lg">
         ${imageElement}
@@ -138,7 +146,7 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
           <button class="copy-btn mt-3 bg-gradient-to-r from-cyan-600 to-cyan-800 text-white px-3 py-1 rounded-md text-xs cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md" data-url="${safeChannel.url}" type="button">
             📋 Copy URL
           </button>
-          <button class="play-btn mt-3 ml-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-3 py-1 rounded-md text-xs cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md" data-url="${safeChannel.url}" type="button">
+          <button class="play-btn mt-3 ml-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-3 py-1 rounded-md text-xs cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md" data-url="${getPlayUrl(safeChannel.url)}" type="button">
             ▶️ Play
           </button>
         </div>

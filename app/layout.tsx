@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "IPTV M3U Manager",
   description: "A modern application for managing IPTV M3U playlists",
-  generator: 'v0.dev'
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -21,10 +21,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <FavoritesProvider>
-          {children}
-          <Toaster />
-        </FavoritesProvider>
+          <FavoritesProvider>
+            {children}
+            <Toaster />
+          </FavoritesProvider>
       </body>
     </html>
   )
