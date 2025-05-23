@@ -7,9 +7,8 @@ import { FilterControls } from "./filter-controls"
 import { ChannelList } from "./channel-list"
 import { parseM3U } from "@/lib/m3u-parser"
 import type { Channel, ChannelGroup } from "@/lib/types"
-import { Button } from "@/components/ui/button"
-import { RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { M3uUrlForm } from "./m3u-url-form"
 
 export default function IPTVManager() {
   const [channels, setChannels] = useState<Channel[]>([])
@@ -20,14 +19,17 @@ export default function IPTVManager() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedGroup, setSelectedGroup] = useState("")
   const { toast } = useToast()
+  const [m3uUrl, setM3uUrl] = useState<string>("")
 
   useEffect(() => {
     if (channels.length > 0) {
-      // Extract unique groups
-      const uniqueGroups = Array.from(new Set(channels.map((channel) => channel.groupTitle))).map((groupTitle) => ({
-        title: groupTitle,
-        count: channels.filter((channel) => channel.groupTitle === groupTitle).length,
-      }))
+      // Extract unique groups and sort them alphabetically
+      const uniqueGroups = Array.from(new Set(channels.map((channel) => channel.groupTitle)))
+        .sort((a, b) => a.localeCompare(b))
+        .map((groupTitle) => ({
+          title: groupTitle,
+          count: channels.filter((channel) => channel.groupTitle === groupTitle).length,
+        }))
 
       setGroups(uniqueGroups)
     }
@@ -92,14 +94,31 @@ export default function IPTVManager() {
     }
   }
 
-  const refreshData = async () => {
+  const refreshData = async (url: string) => {
+    if (!url) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid M3U URL",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
+    setM3uUrl(url)
 
     try {
-      const response = await fetch("/api/refresh-m3u")
+      const response = await fetch("/api/refresh-m3u", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url }),
+      })
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch M3U data: ${response.status}`)
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Failed to fetch M3U data: ${response.status}`)
       }
 
       const content = await response.text()
@@ -131,15 +150,7 @@ export default function IPTVManager() {
       <div className="p-6 md:p-8 bg-gray-50 border-b border-gray-200">
         <FileUploader onFileUpload={handleFileUpload} isLoading={isLoading} />
 
-        <div className="mt-4 text-center">
-          <Button
-            onClick={refreshData}
-            disabled={isLoading}
-            className="bg-gradient-to-r from-green-600 to-teal-500 hover:from-green-700 hover:to-teal-600 text-white px-6 py-2 rounded-lg transition-transform hover:-translate-y-1 shadow-md hover:shadow-lg"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" /> Refresh Data
-          </Button>
-        </div>
+        <M3uUrlForm onRefresh={refreshData} isLoading={isLoading} defaultUrl={m3uUrl} />
       </div>
 
       <div className="p-6 md:p-8">

@@ -1,5 +1,6 @@
 export interface Channel {
   title: string
+  tvgId: string
   tvgName: string
   tvgLogo: string
   groupTitle: string

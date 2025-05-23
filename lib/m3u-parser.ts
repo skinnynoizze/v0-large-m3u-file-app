@@ -27,6 +27,10 @@ export function parseM3U(content: string): Channel[] {
 
 function parseEXTINF(extinfLine: string, url: string): Channel | null {
   try {
+    // Extract tvg-id
+    const idMatch = extinfLine.match(/tvg-id="([^"]*)"/)
+    const tvgId = idMatch ? idMatch[1] : ""
+
     // Extract tvg-name
     const nameMatch = extinfLine.match(/tvg-name="([^"]*)"/)
     const tvgName = nameMatch ? nameMatch[1] : ""
@@ -45,9 +49,10 @@ function parseEXTINF(extinfLine: string, url: string): Channel | null {
 
     return {
       title,
+      tvgId,
       tvgName,
       tvgLogo,
-      groupTitle,
+      groupTitle: groupTitle || "No Group", // Ensure empty group titles are replaced with "No Group"
       url: url.trim(),
     }
   } catch (error) {

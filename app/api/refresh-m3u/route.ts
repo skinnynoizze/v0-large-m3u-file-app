@@ -1,9 +1,21 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 
-export async function GET() {
+export async function POST(request: NextRequest) {
   try {
-    // Replace with your actual M3U URL
-    const response = await fetch("https://example.com/path/to/playlist.m3u", {
+    const { url } = await request.json()
+
+    if (!url) {
+      return NextResponse.json({ error: "No URL provided" }, { status: 400 })
+    }
+
+    // Validate URL format
+    try {
+      new URL(url)
+    } catch (e) {
+      return NextResponse.json({ error: "Invalid URL format" }, { status: 400 })
+    }
+
+    const response = await fetch(url, {
       cache: "no-store",
     })
 
@@ -21,6 +33,9 @@ export async function GET() {
   } catch (error) {
     console.error("Error fetching M3U data:", error)
 
-    return NextResponse.json({ error: "Failed to fetch M3U data" }, { status: 500 })
+    return NextResponse.json(
+      { error: `Failed to fetch M3U data: ${error instanceof Error ? error.message : "Unknown error"}` },
+      { status: 500 },
+    )
   }
 }
