@@ -36,12 +36,6 @@ export function useSettings() {
 
   const updateM3uUrl = (url: string) => {
     updateSetting("m3uUrl", url)
-    if (url.trim()) {
-      addUrlToHistory(url.trim())
-      // Update the URL history in state
-      const updatedSettings = getSettings()
-      setSettings((prev) => ({ ...prev, lastUsedUrls: updatedSettings.lastUsedUrls }))
-    }
   }
 
   const updateSearchTerm = (term: string) => {
@@ -52,11 +46,20 @@ export function useSettings() {
     updateSetting("selectedGroup", group)
   }
 
+  const setLastUsedUrls = (urls: string[]) => {
+    setSettings((prev) => {
+      const newSettings = { ...prev, lastUsedUrls: urls }
+      saveSettings({ lastUsedUrls: urls })
+      return newSettings
+    })
+  }
+
   return {
     settings,
     isLoaded,
     updateM3uUrl,
     updateSearchTerm,
     updateSelectedGroup,
+    setLastUsedUrls,
   }
 }

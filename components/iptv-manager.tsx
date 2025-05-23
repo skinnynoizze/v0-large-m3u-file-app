@@ -12,10 +12,13 @@ import type { Channel, ChannelGroup } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import { useSettings } from "@/hooks/use-settings"
 import { useFavorites } from "@/contexts/favorites-context"
-import { saveChannelsToCache, getChannelsFromCache } from "@/lib/indexed-db"
+import { saveChannelsToCache, getChannelsFromCache, getCacheInfo, clearChannelsCache } from "@/lib/indexed-db"
 import { Button } from "@/components/ui/button"
 import { Heart } from "lucide-react"
 import { M3uUrlForm } from "./m3u-url-form"
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
+import { Card, CardHeader, CardContent } from "@/components/ui/card"
+import { addUrlToHistory, getSettings } from "@/lib/local-storage"
 
 export default function IPTVManager() {
   const [channels, setChannels] = useState<Channel[]>([])
@@ -26,11 +29,16 @@ export default function IPTVManager() {
   const [currentFile, setCurrentFile] = useState<File | null>(null)
   const [showFavorites, setShowFavorites] = useState(false)
   const { toast } = useToast()
+  const [cacheInfo, setCacheInfo] = useState<{
+    timestamp: number
+    source: string
+    sourceIdentifier: string
+  } | null>(null)
 
   // Get favorites from the context
   const { favorites, isLoading: favoritesLoading } = useFavorites()
 
-  const { settings, isLoaded, updateM3uUrl, updateSearchTerm, updateSelectedGroup } = useSettings()
+  const { settings, isLoaded, updateM3uUrl, updateSearchTerm, updateSelectedGroup, setLastUsedUrls } = useSettings()
 
   // Debug logging for favorites
   useEffect(() => {
@@ -189,6 +197,7 @@ export default function IPTVManager() {
 
         // Save to cache
         await saveChannelsToCache(parsedChannels, "file", file.name)
+        await loadCacheInfo()
 
         toast({
           title: "Success",
@@ -296,6 +305,11 @@ export default function IPTVManager() {
 
         // Save to cache
         await saveChannelsToCache(parsedChannels, "url", trimmedUrl)
+        addUrlToHistory(trimmedUrl)
+        const updatedSettings = getSettings()
+        updateM3uUrl(trimmedUrl)
+        setLastUsedUrls(updatedSettings.lastUsedUrls)
+        await loadCacheInfo()
 
         toast({
           title: "Success",
@@ -319,10 +333,27 @@ export default function IPTVManager() {
     updateSelectedGroup("")
   }
 
-  const handleClearCache = () => {
-    setChannels([])
-    setFilteredChannels([])
-    setGroups([])
+  const handleClearCache = async () => {
+    setIsLoading(true)
+    try {
+      await clearChannelsCache()
+      setChannels([])
+      setFilteredChannels([])
+      setGroups([])
+      setCacheInfo(null)
+      toast({
+        title: "Cache cleared",
+        description: "Channel data has been cleared from browser storage",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to clear cache",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleRefreshFromCache = () => {
@@ -339,6 +370,16 @@ export default function IPTVManager() {
 
   // Calculate favorites count safely
   const favoritesCount = Array.isArray(favorites) ? favorites.length : 0
+
+  // Load cache info on mount and after relevant actions
+  useEffect(() => {
+    loadCacheInfo()
+  }, [])
+
+  const loadCacheInfo = async () => {
+    const info = await getCacheInfo()
+    setCacheInfo(info)
+  }
 
   // Don't render until settings are loaded and cache check is complete
   if (!isLoaded || isLoadingCache) {
@@ -360,35 +401,45 @@ export default function IPTVManager() {
             <h1 className="text-4xl font-light mb-2">IPTV M3U Manager</h1>
             <p className="text-gray-300">Upload and manage your M3U playlists</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => setShowFavorites(true)}
-            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-          >
-            <Heart className="mr-2 h-4 w-4" />
-            Favorites ({favoritesCount})
-          </Button>
         </div>
       </div>
 
-      <div className="p-6 md:p-8 bg-gray-50 border-b border-gray-200">
-        <CacheInfo onClearCache={handleClearCache} onRefreshData={handleRefreshFromCache} />
-
-        <FileUploader onFileUpload={handleFileUpload} isLoading={isLoading} />
-
+      <div className="p-4 bg-gray-50 border-b border-gray-200">
         <M3uUrlForm
           onRefresh={refreshData}
           isLoading={isLoading}
           defaultUrl={settings?.m3uUrl || ""}
           urlHistory={Array.isArray(settings?.lastUsedUrls) ? settings.lastUsedUrls : []}
           onUrlChange={updateM3uUrl}
+          onFileUpload={handleFileUpload}
+          isLoadingFileUpload={isLoading}
         />
+
+        <div className="mt-3">
+          <CacheInfo
+            cacheInfo={cacheInfo}
+            onClearCache={handleClearCache}
+            onRefreshData={handleRefreshFromCache}
+            onReloadCacheInfo={loadCacheInfo}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
 
       <div className="p-6 md:p-8">
         {Array.isArray(channels) && channels.length > 0 && (
           <>
-            <StatsDisplay totalChannels={channels.length} totalGroups={groups.length} />
+            <div className="flex items-center justify-between mb-4">
+              <StatsDisplay totalChannels={channels.length} totalGroups={groups.length} />
+              <Button
+                variant="outline"
+                onClick={() => setShowFavorites(true)}
+                className="bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+              >
+                <Heart className="mr-2 h-4 w-4" />
+                Favorites ({favoritesCount})
+              </Button>
+            </div>
 
             <FilterControls
               groups={groups}

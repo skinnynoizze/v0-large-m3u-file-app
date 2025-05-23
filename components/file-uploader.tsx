@@ -66,16 +66,6 @@ export function FileUploader({ onFileUpload, isLoading }: FileUploaderProps) {
           disabled={isLoading}
         />
       </div>
-
-      <div className="mt-4 text-center">
-        <Button
-          onClick={handleUploadClick}
-          disabled={isLoading}
-          className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white px-6 py-2 rounded-lg transition-transform hover:-translate-y-1 shadow-md hover:shadow-lg"
-        >
-          <Upload className="mr-2 h-4 w-4" /> Upload M3U File
-        </Button>
-      </div>
     </div>
   )
 }

@@ -1,60 +1,22 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, Trash2, Database } from "lucide-react"
-import { clearChannelsCache, getCacheInfo } from "@/lib/indexed-db"
-import { useToast } from "@/hooks/use-toast"
 
 interface CacheInfoProps {
-  onClearCache: () => void
-  onRefreshData: () => void
-}
-
-export function CacheInfo({ onClearCache, onRefreshData }: CacheInfoProps) {
-  const [cacheInfo, setCacheInfo] = useState<{
+  cacheInfo: {
     timestamp: number
     source: string
     sourceIdentifier: string
-  } | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
+  } | null
+  onClearCache: () => void
+  onRefreshData: () => void
+  onReloadCacheInfo: () => void
+  isLoading: boolean
+}
 
-  useEffect(() => {
-    loadCacheInfo()
-  }, [])
-
-  const loadCacheInfo = async () => {
-    try {
-      const info = await getCacheInfo()
-      setCacheInfo(info)
-    } catch (error) {
-      console.error("Failed to load cache info:", error)
-    }
-  }
-
-  const handleClearCache = async () => {
-    setIsLoading(true)
-    try {
-      await clearChannelsCache()
-      setCacheInfo(null)
-      onClearCache()
-      toast({
-        title: "Cache cleared",
-        description: "Channel data has been cleared from browser storage",
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to clear cache",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
+export function CacheInfo({ cacheInfo, onClearCache, onRefreshData, onReloadCacheInfo, isLoading }: CacheInfoProps) {
   if (!cacheInfo) {
     return null
   }
@@ -96,7 +58,7 @@ export function CacheInfo({ onClearCache, onRefreshData }: CacheInfoProps) {
           <RefreshCw className="mr-2 h-4 w-4" />
           Refresh Data
         </Button>
-        <Button variant="destructive" onClick={handleClearCache} disabled={isLoading}>
+        <Button variant="destructive" onClick={onClearCache} disabled={isLoading}>
           <Trash2 className="mr-2 h-4 w-4" />
           Clear Cache
         </Button>

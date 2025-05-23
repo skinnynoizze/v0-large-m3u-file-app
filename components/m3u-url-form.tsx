@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RefreshCw, History } from "lucide-react"
+import { RefreshCw, History, Upload } from "lucide-react"
+import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { FileUploader } from "@/components/file-uploader"
 
 interface M3uUrlFormProps {
   onRefresh: (url: string) => Promise<void>
@@ -16,10 +18,13 @@ interface M3uUrlFormProps {
   defaultUrl?: string
   urlHistory?: string[]
   onUrlChange?: (url: string) => void
+  onFileUpload?: (file: File) => void
+  isLoadingFileUpload?: boolean
 }
 
-export function M3uUrlForm({ onRefresh, isLoading, defaultUrl = "", urlHistory = [], onUrlChange }: M3uUrlFormProps) {
+export function M3uUrlForm({ onRefresh, isLoading, defaultUrl = "", urlHistory = [], onUrlChange, onFileUpload, isLoadingFileUpload }: M3uUrlFormProps) {
   const [url, setUrl] = useState(defaultUrl)
+  const [modalOpen, setModalOpen] = useState(false)
 
   useEffect(() => {
     setUrl(defaultUrl)
@@ -40,6 +45,13 @@ export function M3uUrlForm({ onRefresh, isLoading, defaultUrl = "", urlHistory =
   const handleHistorySelect = (selectedUrl: string) => {
     if (selectedUrl && selectedUrl !== "select-history") {
       handleUrlChange(selectedUrl)
+    }
+  }
+
+  const handleFileUpload = async (file: File) => {
+    if (onFileUpload) {
+      await onFileUpload(file)
+      setModalOpen(false)
     }
   }
 
@@ -92,7 +104,7 @@ export function M3uUrlForm({ onRefresh, isLoading, defaultUrl = "", urlHistory =
                   {urlHistory.map((historyUrl, index) => (
                     <SelectItem key={index} value={historyUrl}>
                       <div className="flex items-center justify-between w-full">
-                        <span className="truncate max-w-[300px]">{historyUrl}</span>
+                        <span className="break-all" title={historyUrl}>{historyUrl}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -101,6 +113,21 @@ export function M3uUrlForm({ onRefresh, isLoading, defaultUrl = "", urlHistory =
             </div>
           )}
         </form>
+        <div className="mt-4">
+          <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-gray-500 hover:underline">
+                <Upload className="mr-1 h-4 w-4" />
+                Upload local M3U file
+                <span className="ml-2 px-2 py-0.5 text-xs bg-gray-200 rounded-full">Advanced</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogTitle>Upload a local M3U file</DialogTitle>
+              <FileUploader onFileUpload={handleFileUpload} isLoading={isLoadingFileUpload || false} />
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardContent>
     </Card>
   )
