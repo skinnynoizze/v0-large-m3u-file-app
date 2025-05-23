@@ -9,6 +9,7 @@ import { parseM3U } from "@/lib/m3u-parser"
 import type { Channel, ChannelGroup } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import { M3uUrlForm } from "./m3u-url-form"
+import { useSettings } from "@/hooks/use-settings"
 
 export default function IPTVManager() {
   const [channels, setChannels] = useState<Channel[]>([])
@@ -16,10 +17,9 @@ export default function IPTVManager() {
   const [groups, setGroups] = useState<ChannelGroup[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [currentFile, setCurrentFile] = useState<File | null>(null)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedGroup, setSelectedGroup] = useState("")
   const { toast } = useToast()
-  const [m3uUrl, setM3uUrl] = useState<string>("")
+
+  const { settings, isLoaded, updateM3uUrl, updateSearchTerm, updateSelectedGroup } = useSettings()
 
   useEffect(() => {
     if (channels.length > 0) {
@@ -37,25 +37,25 @@ export default function IPTVManager() {
 
   useEffect(() => {
     applyFilters()
-  }, [searchTerm, selectedGroup, channels])
+  }, [settings.searchTerm, settings.selectedGroup, channels])
 
   const applyFilters = () => {
-    if (!searchTerm && !selectedGroup) {
+    if (!settings.searchTerm && !settings.selectedGroup) {
       setFilteredChannels([])
       return
     }
 
     let filtered = [...channels]
 
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase()
+    if (settings.searchTerm) {
+      const term = settings.searchTerm.toLowerCase()
       filtered = filtered.filter(
         (channel) => channel.title.toLowerCase().includes(term) || channel.tvgName.toLowerCase().includes(term),
       )
     }
 
-    if (selectedGroup) {
-      filtered = filtered.filter((channel) => channel.groupTitle === selectedGroup)
+    if (settings.selectedGroup) {
+      filtered = filtered.filter((channel) => channel.groupTitle === settings.selectedGroup)
     }
 
     setFilteredChannels(filtered)
@@ -105,7 +105,7 @@ export default function IPTVManager() {
     }
 
     setIsLoading(true)
-    setM3uUrl(url)
+    updateM3uUrl(url)
 
     try {
       const response = await fetch("/api/refresh-m3u", {
@@ -140,6 +140,23 @@ export default function IPTVManager() {
     }
   }
 
+  const clearFilters = () => {
+    updateSearchTerm("")
+    updateSelectedGroup("")
+  }
+
+  // Don't render until settings are loaded
+  if (!isLoaded) {
+    return (
+      <div className="bg-white/95 rounded-3xl shadow-2xl overflow-hidden">
+        <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white p-8 text-center">
+          <h1 className="text-4xl font-light mb-2">IPTV M3U Manager</h1>
+          <p className="text-gray-300">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-white/95 rounded-3xl shadow-2xl overflow-hidden">
       <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white p-8 text-center">
@@ -150,7 +167,13 @@ export default function IPTVManager() {
       <div className="p-6 md:p-8 bg-gray-50 border-b border-gray-200">
         <FileUploader onFileUpload={handleFileUpload} isLoading={isLoading} />
 
-        <M3uUrlForm onRefresh={refreshData} isLoading={isLoading} defaultUrl={m3uUrl} />
+        <M3uUrlForm
+          onRefresh={refreshData}
+          isLoading={isLoading}
+          defaultUrl={settings.m3uUrl}
+          urlHistory={settings.lastUsedUrls}
+          onUrlChange={updateM3uUrl}
+        />
       </div>
 
       <div className="p-6 md:p-8">
@@ -160,13 +183,18 @@ export default function IPTVManager() {
 
             <FilterControls
               groups={groups}
-              searchTerm={searchTerm}
-              selectedGroup={selectedGroup}
-              onSearchChange={setSearchTerm}
-              onGroupChange={setSelectedGroup}
+              searchTerm={settings.searchTerm}
+              selectedGroup={settings.selectedGroup}
+              onSearchChange={updateSearchTerm}
+              onGroupChange={updateSelectedGroup}
+              onClearFilters={clearFilters}
             />
 
-            <ChannelList channels={filteredChannels} searchTerm={searchTerm} selectedGroup={selectedGroup} />
+            <ChannelList
+              channels={filteredChannels}
+              searchTerm={settings.searchTerm}
+              selectedGroup={settings.selectedGroup}
+            />
           </>
         )}
       </div>

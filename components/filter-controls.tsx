@@ -1,8 +1,9 @@
 "use client"
-
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Trash2 } from "lucide-react"
 import type { ChannelGroup } from "@/lib/types"
 
 interface FilterControlsProps {
@@ -11,6 +12,7 @@ interface FilterControlsProps {
   selectedGroup: string
   onSearchChange: (value: string) => void
   onGroupChange: (value: string) => void
+  onClearFilters?: () => void
 }
 
 export function FilterControls({
@@ -19,7 +21,10 @@ export function FilterControls({
   selectedGroup,
   onSearchChange,
   onGroupChange,
+  onClearFilters,
 }: FilterControlsProps) {
+  const hasActiveFilters = searchTerm || selectedGroup
+
   return (
     <div className="flex flex-wrap gap-4 mb-8 items-end">
       <div className="flex flex-col gap-2 flex-1 min-w-[200px]">
@@ -53,6 +58,16 @@ export function FilterControls({
           </SelectContent>
         </Select>
       </div>
+
+      {hasActiveFilters && onClearFilters && (
+        <div className="flex flex-col gap-2">
+          <Label className="font-semibold text-gray-700 opacity-0">Clear</Label>
+          <Button variant="outline" onClick={onClearFilters} className="border-2 border-gray-200 rounded-lg">
+            <Trash2 className="mr-2 h-4 w-4" />
+            Clear Filters
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
