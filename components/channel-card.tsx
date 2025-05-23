@@ -65,7 +65,7 @@ export function ChannelCard({ channel }: ChannelCardProps) {
     <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200 transition-all hover:-translate-y-1 hover:shadow-lg">
       {channel.tvgLogo && !imageError ? (
         <img
-          src={channel.tvgLogo || "/placeholder.svg"}
+          src={channel.tvgLogo ? `/api/proxy-logo?url=${encodeURIComponent(channel.tvgLogo)}` : "/placeholder.svg"}
           alt={channel.tvgName}
           className="w-full h-48 object-cover bg-gray-100"
           onError={() => setImageError(true)}

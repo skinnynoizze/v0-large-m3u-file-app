@@ -119,7 +119,7 @@ export function FavoritesPanel({ isOpen, onClose }: FavoritesPanelProps) {
                   </Badge>
                   {channel.tvgLogo && (
                     <img
-                      src={channel.tvgLogo || "/placeholder.svg"}
+                      src={channel.tvgLogo ? `/api/proxy-logo?url=${encodeURIComponent(channel.tvgLogo)}` : "/placeholder.svg"}
                       alt={channel.tvgName}
                       className="w-full h-24 object-cover rounded mb-2"
                       onError={(e) => {

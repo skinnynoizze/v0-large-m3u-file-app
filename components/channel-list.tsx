@@ -78,7 +78,7 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
       }
 
       const imageElement = safeChannel.tvgLogo
-        ? `<img src="${safeChannel.tvgLogo}" alt="${safeChannel.tvgName}" class="w-full h-48 object-cover bg-gray-100" onerror="this.outerHTML='<div class=\\'w-full h-48 flex items-center justify-center bg-gray-100 text-gray-500 text-sm\\'>No image available</div>'">`
+        ? `<img src="/api/proxy-logo?url=${encodeURIComponent(safeChannel.tvgLogo)}" alt="${safeChannel.tvgName}" class="w-full h-48 object-cover bg-gray-100" onerror="this.outerHTML='<div class=\'w-full h-48 flex items-center justify-center bg-gray-100 text-gray-500 text-sm\'>No image available</div>'">`
         : '<div class="w-full h-48 flex items-center justify-center bg-gray-100 text-gray-500 text-sm">No image available</div>'
 
       let isChannelFavorite = false
