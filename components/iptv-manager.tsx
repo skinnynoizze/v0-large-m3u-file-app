@@ -5,21 +5,49 @@ import { FileUploader } from "./file-uploader"
 import { StatsDisplay } from "./stats-display"
 import { FilterControls } from "./filter-controls"
 import { ChannelList } from "./channel-list"
+import { CacheInfo } from "./cache-info"
 import { parseM3U } from "@/lib/m3u-parser"
 import type { Channel, ChannelGroup } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import { M3uUrlForm } from "./m3u-url-form"
 import { useSettings } from "@/hooks/use-settings"
+import { saveChannelsToCache, getChannelsFromCache } from "@/lib/indexed-db"
 
 export default function IPTVManager() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [filteredChannels, setFilteredChannels] = useState<Channel[]>([])
   const [groups, setGroups] = useState<ChannelGroup[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingCache, setIsLoadingCache] = useState(true)
   const [currentFile, setCurrentFile] = useState<File | null>(null)
   const { toast } = useToast()
 
   const { settings, isLoaded, updateM3uUrl, updateSearchTerm, updateSelectedGroup } = useSettings()
+
+  // Load channels from cache on initial load
+  useEffect(() => {
+    async function loadFromCache() {
+      setIsLoadingCache(true)
+      try {
+        const cachedData = await getChannelsFromCache()
+        if (cachedData) {
+          setChannels(cachedData.channels)
+          toast({
+            title: "Loaded from cache",
+            description: `Loaded ${cachedData.channels.length} channels from browser storage`,
+          })
+        }
+      } catch (error) {
+        console.error("Failed to load from cache:", error)
+      } finally {
+        setIsLoadingCache(false)
+      }
+    }
+
+    if (isLoaded) {
+      loadFromCache()
+    }
+  }, [isLoaded, toast])
 
   useEffect(() => {
     if (channels.length > 0) {
@@ -91,6 +119,10 @@ export default function IPTVManager() {
         })
       } else {
         setChannels(parsedChannels)
+
+        // Save to cache
+        await saveChannelsToCache(parsedChannels, "file", file.name)
+
         toast({
           title: "Success",
           description: `File "${file.name}" loaded successfully with ${parsedChannels.length} channels`,
@@ -150,6 +182,10 @@ export default function IPTVManager() {
         })
       } else {
         setChannels(parsedChannels)
+
+        // Save to cache
+        await saveChannelsToCache(parsedChannels, "url", url)
+
         toast({
           title: "Success",
           description: `Data updated successfully with ${parsedChannels.length} channels`,
@@ -171,8 +207,26 @@ export default function IPTVManager() {
     updateSelectedGroup("")
   }
 
-  // Don't render until settings are loaded
-  if (!isLoaded) {
+  const handleClearCache = () => {
+    setChannels([])
+    setFilteredChannels([])
+    setGroups([])
+  }
+
+  const handleRefreshFromCache = () => {
+    if (settings.m3uUrl) {
+      refreshData(settings.m3uUrl)
+    } else {
+      toast({
+        title: "No URL available",
+        description: "Please enter a URL to refresh data",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Don't render until settings are loaded and cache check is complete
+  if (!isLoaded || isLoadingCache) {
     return (
       <div className="bg-white/95 rounded-3xl shadow-2xl overflow-hidden">
         <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white p-8 text-center">
@@ -191,6 +245,8 @@ export default function IPTVManager() {
       </div>
 
       <div className="p-6 md:p-8 bg-gray-50 border-b border-gray-200">
+        <CacheInfo onClearCache={handleClearCache} onRefreshData={handleRefreshFromCache} />
+
         <FileUploader onFileUpload={handleFileUpload} isLoading={isLoading} />
 
         <M3uUrlForm
