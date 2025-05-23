@@ -4,6 +4,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { FavoritesProvider } from "@/contexts/favorites-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -22,8 +23,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light">
-          {children}
-          <Toaster />
+          <FavoritesProvider>
+            {children}
+            <Toaster />
+          </FavoritesProvider>
         </ThemeProvider>
       </body>
     </html>

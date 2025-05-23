@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { Channel } from "@/lib/types"
 import { Button } from "@/components/ui/button"
-import { Copy } from "lucide-react"
+import { Copy, Heart } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useFavorites } from "@/contexts/favorites-context"
 
 interface ChannelCardProps {
   channel: Channel
@@ -13,6 +14,14 @@ interface ChannelCardProps {
 export function ChannelCard({ channel }: ChannelCardProps) {
   const [imageError, setImageError] = useState(false)
   const { toast } = useToast()
+  const { toggleFavorite, isFavorite } = useFavorites()
+  // Track favorite state locally to force re-renders
+  const [isFav, setIsFav] = useState(false)
+
+  // Update local state when global state changes
+  useEffect(() => {
+    setIsFav(isFavorite(channel))
+  }, [channel, isFavorite])
 
   const copyToClipboard = async () => {
     try {
@@ -25,6 +34,28 @@ export function ChannelCard({ channel }: ChannelCardProps) {
       toast({
         title: "Error",
         description: "Failed to copy URL",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleToggleFavorite = async () => {
+    try {
+      // Toggle in database and global state
+      await toggleFavorite(channel)
+
+      // Update local state immediately
+      const newState = !isFav
+      setIsFav(newState)
+
+      toast({
+        title: newState ? "Added to favorites" : "Removed from favorites",
+        description: channel.title,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update favorites",
         variant: "destructive",
       })
     }
@@ -46,8 +77,18 @@ export function ChannelCard({ channel }: ChannelCardProps) {
       )}
 
       <div className="p-4">
-        <div className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-blue-600 to-blue-800 mb-3">
-          {channel.groupTitle}
+        <div className="flex items-start justify-between mb-3">
+          <div className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-blue-600 to-blue-800">
+            {channel.groupTitle}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleToggleFavorite}
+            className="p-1 h-auto hover:bg-gray-100 rounded-full"
+          >
+            <Heart className={`h-4 w-4 ${isFav ? "text-red-500 fill-current" : "text-gray-400"}`} />
+          </Button>
         </div>
 
         <h3 className="text-base font-semibold text-gray-800 mb-2 line-clamp-2">{channel.title}</h3>
