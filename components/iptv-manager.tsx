@@ -76,13 +76,26 @@ export default function IPTVManager() {
 
     try {
       const content = await file.text()
-      const parsedChannels = parseM3U(content)
-      setChannels(parsedChannels)
 
-      toast({
-        title: "Success",
-        description: `File "${file.name}" loaded successfully with ${parsedChannels.length} channels`,
-      })
+      if (!content) {
+        throw new Error("File is empty")
+      }
+
+      const parsedChannels = parseM3U(content)
+
+      if (parsedChannels.length === 0) {
+        toast({
+          title: "Warning",
+          description: `No channels found in the file. Please check the file format.`,
+          variant: "destructive",
+        })
+      } else {
+        setChannels(parsedChannels)
+        toast({
+          title: "Success",
+          description: `File "${file.name}" loaded successfully with ${parsedChannels.length} channels`,
+        })
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -122,13 +135,26 @@ export default function IPTVManager() {
       }
 
       const content = await response.text()
-      const parsedChannels = parseM3U(content)
-      setChannels(parsedChannels)
 
-      toast({
-        title: "Success",
-        description: `Data updated successfully with ${parsedChannels.length} channels`,
-      })
+      if (!content) {
+        throw new Error("Received empty content from the server")
+      }
+
+      const parsedChannels = parseM3U(content)
+
+      if (parsedChannels.length === 0) {
+        toast({
+          title: "Warning",
+          description: "No channels found in the response. Please check the URL.",
+          variant: "destructive",
+        })
+      } else {
+        setChannels(parsedChannels)
+        toast({
+          title: "Success",
+          description: `Data updated successfully with ${parsedChannels.length} channels`,
+        })
+      }
     } catch (error) {
       toast({
         title: "Error",

@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { Channel } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
-import Clusterize from "clusterize.js"
 
 interface ChannelListProps {
   channels: Channel[]
@@ -14,17 +13,42 @@ interface ChannelListProps {
 export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelListProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const contentAreaRef = useRef<HTMLDivElement>(null)
-  const clusterizeRef = useRef<Clusterize | null>(null)
+  const clusterizeRef = useRef<any>(null)
   const { toast } = useToast()
+  const [isMounted, setIsMounted] = useState(false)
+  const [ClusterizeClass, setClusterizeClass] = useState<any>(null)
+
+  // Set mounted state and load Clusterize after component mounts
+  useEffect(() => {
+    setIsMounted(true)
+
+    // Dynamically import Clusterize.js
+    import("clusterize.js")
+      .then((module) => {
+        setClusterizeClass(module.default)
+      })
+      .catch((error) => {
+        console.error("Failed to load Clusterize.js:", error)
+      })
+
+    return () => {
+      if (clusterizeRef.current) {
+        clusterizeRef.current.destroy(true)
+      }
+    }
+  }, [])
 
   useEffect(() => {
+    // Only run this effect on the client side after mounting and Clusterize is loaded
+    if (!isMounted || !ClusterizeClass) return
+
     // Clean up previous Clusterize instance
     if (clusterizeRef.current) {
       clusterizeRef.current.destroy(true)
       clusterizeRef.current = null
     }
 
-    if (channels.length === 0) {
+    if (channels.length === 0 || !scrollAreaRef.current || !contentAreaRef.current) {
       return
     }
 
@@ -36,13 +60,15 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
     })
 
     // Initialize Clusterize
-    if (scrollAreaRef.current && contentAreaRef.current) {
-      clusterizeRef.current = new Clusterize({
+    try {
+      clusterizeRef.current = new ClusterizeClass({
         rows: rows,
         scrollId: scrollAreaRef.current.id,
         contentId: contentAreaRef.current.id,
         no_data_text: "No channels found matching your filters",
       })
+    } catch (error) {
+      console.error("Failed to initialize Clusterize:", error)
     }
 
     // Add event listener for copy buttons
@@ -78,7 +104,7 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
         clusterizeRef.current.destroy(true)
       }
     }
-  }, [channels, toast])
+  }, [channels, toast, isMounted, ClusterizeClass])
 
   const generateChannelHTML = (channel: Channel, index: number) => {
     const imageElement = channel.tvgLogo
@@ -104,6 +130,17 @@ export function ChannelList({ channels, searchTerm, selectedGroup }: ChannelList
     return (
       <div className="bg-gray-50 p-4 rounded-lg text-center text-gray-600">
         Use the search or group filter to view channels
+      </div>
+    )
+  }
+
+  if (!isMounted || !ClusterizeClass) {
+    return (
+      <div className="bg-gray-50 p-4 rounded-lg text-center text-gray-600">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+        </div>
       </div>
     )
   }

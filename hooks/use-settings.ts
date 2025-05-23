@@ -19,7 +19,7 @@ export function useSettings() {
   })
   const [isLoaded, setIsLoaded] = useState(false)
 
-  // Load settings on mount
+  // Load settings on mount (client-side only)
   useEffect(() => {
     const loadedSettings = getSettings()
     setSettings(loadedSettings)

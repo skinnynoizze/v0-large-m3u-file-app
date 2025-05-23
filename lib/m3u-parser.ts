@@ -1,6 +1,12 @@
 import type { Channel } from "./types"
 
-export function parseM3U(content: string): Channel[] {
+export function parseM3U(content: string | null | undefined): Channel[] {
+  // Return empty array if content is undefined or null
+  if (!content) {
+    console.warn("M3U content is empty or undefined")
+    return []
+  }
+
   const lines = content
     .split("\n")
     .map((line) => line.trim())
@@ -10,7 +16,7 @@ export function parseM3U(content: string): Channel[] {
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].startsWith("#EXTINF:")) {
       const extinf = lines[i]
-      const url = lines[i + 1]
+      const url = i + 1 < lines.length ? lines[i + 1] : null
 
       if (url && !url.startsWith("#")) {
         const channel = parseEXTINF(extinf, url)

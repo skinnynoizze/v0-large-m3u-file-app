@@ -8,7 +8,12 @@ interface AppSettings {
 const STORAGE_KEY = "iptv-m3u-manager-settings"
 const MAX_URL_HISTORY = 10
 
+// Helper to check if we're in a browser environment
+const isBrowser = typeof window !== "undefined"
+
 export function saveSettings(settings: Partial<AppSettings>): void {
+  if (!isBrowser) return
+
   try {
     const currentSettings = getSettings()
     const updatedSettings = { ...currentSettings, ...settings }
@@ -19,6 +24,15 @@ export function saveSettings(settings: Partial<AppSettings>): void {
 }
 
 export function getSettings(): AppSettings {
+  if (!isBrowser) {
+    return {
+      m3uUrl: "",
+      searchTerm: "",
+      selectedGroup: "",
+      lastUsedUrls: [],
+    }
+  }
+
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
@@ -37,6 +51,8 @@ export function getSettings(): AppSettings {
 }
 
 export function addUrlToHistory(url: string): void {
+  if (!isBrowser) return
+
   try {
     const settings = getSettings()
     const urls = settings.lastUsedUrls || []
@@ -54,6 +70,8 @@ export function addUrlToHistory(url: string): void {
 }
 
 export function clearSettings(): void {
+  if (!isBrowser) return
+
   try {
     localStorage.removeItem(STORAGE_KEY)
   } catch (error) {
